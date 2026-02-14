@@ -6,7 +6,11 @@ from curl_cffi import requests
 class SofaScoreScraper:
     def __init__(self, proxy_list=None):
         self.base_url = "https://api.sofascore.com/api/v1"
-        self.proxy_list = proxy_list or []
+        self.proxy_list = [
+            "http://43.200.77.128:80",
+            "http://129.151.109.231:80",
+            "http://152.26.229.66:9443"
+        ]
         self.impersonates = ["chrome110", "chrome120", "safari17_2_ios"]
         
     def get_headers(self):
