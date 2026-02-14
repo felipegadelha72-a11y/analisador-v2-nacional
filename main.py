@@ -3,40 +3,29 @@ from curl_cffi.requests import AsyncSession
 
 app = FastAPI()
 
-# Termos que queremos filtrar
-CAMPEONATOS_ALVO = ["Paulista", "Brasileirão", "Copa do Brasil", "Serie A"]
-
 @app.get("/jogos-do-dia")
 async def get_jogos(data: str = Query(...)):
     url = f"https://api.sofascore.com/api/v1/event/schedule/date/{data}"
     
     try:
         async with AsyncSession() as session:
-            # Bypass do seu guia (funciona 100% no Render)
-            response = await session.get(url, impersonate="chrome120")
+            # Bypass Chrome 110 para estabilidade no Render
+            response = await session.get(url, impersonate="chrome110")
             
             if response.status_code == 200:
                 data_json = response.json()
                 eventos = data_json.get("events", [])
                 
-                resultado = []
+                analise_bruta = []
                 for ev in eventos:
-                    torneio_nome = ev.get("tournament", {}).get("name", "")
-                    
-                    # Verifica se o nome do campeonato contém nossos alvos
-                    if any(alvo.lower() in torneio_nome.lower() for alvo in CAMPEONATOS_ALVO):
-                        resultado.append({
-                            "campeonato": torneio_nome,
-                            "confronto": f"{ev.get('homeTeam', {}).get('name')} x {ev.get('awayTeam', {}).get('name')}",
-                            "id_sofa": ev.get("id")
-                        })
+                    analise_bruta.append({
+                        "id_partida": ev.get("id"),
+                        "campeonato": ev.get("tournament", {}).get("name"),
+                        "confronto": f"{ev.get('homeTeam', {}).get('name')} x {ev.get('awayTeam', {}).get('name')}"
+                    })
                 
-                return {
-                    "data_solicitada": data,
-                    "total_encontrado": len(resultado),
-                    "jogos": resultado
-                }
+                return {"data": data, "total_analisados": len(analise_bruta), "jogos": analise_bruta}
             else:
-                return {"erro": f"Status {response.status_code}"}
+                return {"erro": f"Bloqueio SofaScore: {response.status_code}"}
     except Exception as e:
         return {"erro": str(e)}
